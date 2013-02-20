@@ -10,14 +10,13 @@
 <script async src="//platform.twitter.com/widgets.js" charset="utf-8"></script>
 
 <p>Ok, it wasn't just anyone. It still blows me away that Jonathan is so generous with his time over twitter.  Anyway, with that simple exchange, a new project (to me, remember I have no idea what the folks at Broad are doing with this data) was born. I hope to address what mitochondrial heteroplasmy is and means (if anything) in the next post, but for the time being I just wanted to know it it existed in significant quantity in <em>C. neoformans</em>. It would be tempting to think so, as mating in this fungi consist of nuclear fusion, but surprisingly... <a href="http://www.ncbi.nlm.nih.gov/pubmed/10688697">no</a>. Even more strange (to me), <a href="http://www.ncbi.nlm.nih.gov/pmc/articles/PMC3385124/">mating factor type</a> seems to determine which population "wins" after nuclear fusion. The caveat to those two papers is that they weren't measured by high coverage sequencing, and I know what I saw. </p>
-<p>After the fold are the programs/strategies for manipulating the raw read data into a Variant Call Format file. My choice of programs are somewhat arbitrary. <a href="https://github.com/ekg/freebayes">FreeBayes</a> has a "ploidy" and "pooled" option that seem to do what I want: treat the mitochondria like a population of bacteria. I used <a href="http://www.novocraft.com/main/index.php">Novoalign</a> because I had a free 30 day trial and wanted to put it through its paces with some good data, and <a href="https://twitter.com/BioMickWatson">Mick Watson</a> sings its praises re:accuracy, which seems relatively important for this analysis. The rest is my kludgy python.</p>
+<p>After the fold are the programs/strategies for manipulating the raw read data into a Variant Call Format file. My choice of programs are somewhat arbitrary. <a href="https://github.com/ekg/freebayes">FreeBayes</a> has a "ploidy" and "pooled" option that seem to do what I want: treat the mitochondria like a population of bacteria. I used <a href="http://www.novocraft.com/main/index.php">Novoalign</a> because I had a free 30 day trial and wanted to put it through its paces with some good data, and <a href="https://twitter.com/BioMickWatson">Mick Watson</a> sings its praises re:accuracy, which seems relatively important for this analysis. The rest is my kludgy python. This ipython notebook is saved to my public github repository, found <a href="https://github.com/drlabratory/Research_Git/tree/master/sequence_analysis">here</a>.</p>
 </div>
 <div class="text_cell_render border-box-sizing rendered_html">
 <h2>Data file manipulation</h2>
-<ul>
-<li>downloaded the entire <a href="http://www.ncbi.nlm.nih.gov/sra/?term=SRP015886">SRP015886</a> experiment runs and converted them to FASTQ using <a href="http://www.ncbi.nlm.nih.gov/Traces/sra/?view=software">fastq-dump</a> in a bash script.</li>
-<li>Ran <a href="http://www.usadellab.org/cms/index.php?page=trimmomatic">Trimmomatic</a> on all with the following options (bash script as well):</li>
-</ul>
+<p>First I needed to get the data, all 100+ GB of it.
+- downloaded the entire <a href="http://www.ncbi.nlm.nih.gov/sra/?term=SRP015886">SRP015886</a> experiment runs and converted them to FASTQ using <a href="http://www.ncbi.nlm.nih.gov/Traces/sra/?view=software">fastq-dump</a> in a bash script.
+- Ran <a href="http://www.usadellab.org/cms/index.php?page=trimmomatic">Trimmomatic</a> on all with the following options (bash script as well):</p>
 <p>Paired end:  </p>
 <pre><code>java -classpath /usr/local/Trimmomatic-0.22/trimmomatic-0.22.jar \
     org.usadellab.trimmomatic.TrimmomaticPE -threads 8 -phred33 -trimlog \
@@ -40,39 +39,13 @@
 </div>
 <div class="text_cell_render border-box-sizing rendered_html">
 <h3>Ran novoindex on the H99.fasta file</h3>
-<p>Fasta download from <a href="http://www.broadinstitute.org/annotation/genome/cryptococcus_neoformans/MultiHome.html">Broad</a> for both genome and mitochondria, cat'ed together.</p>
-</div>
-<div class="cell border-box-sizing code_cell vbox">
-<div class="input hbox">
-<div class="prompt input_prompt">In&nbsp;[60]:</div>
-<div class="input_area box-flex1">
-<div class="highlight"><pre><span class="o">!</span>novoindex H99.nix H99.fasta
-</pre></div>
-
-</div>
-</div>
-<div class="vbox output_wrapper">
-<div class="output vbox">
-<div class="hbox output_area">
-<div class="prompt output_prompt"></div>
-<div class="output_subarea output_stream output_stdout">
-<pre># novoindex (2.8) - Universal k-mer index constructor.
-# (C) 2008 - 2011 NovoCraft Technologies Sdn Bhd
-# novoindex H99.nix H99.fasta 
-# Creating 8 indexing threads.
-# Building with 10-mer and step of 1 bp.
-# novoindex construction dT = 0.6s
-# Index memory size   0.083Gbyte.
-# Done.
-</pre>
-</div>
-</div>
-</div>
-</div>
+<p>Fasta download from <a href="http://www.broadinstitute.org/annotation/genome/cryptococcus_neoformans/MultiHome.html">Broad</a> for both genome and mitochondria, cat'ed together. </p>
+<pre><code>novoindex H99.nix H99.fasta
+</code></pre>
 </div>
 <div class="text_cell_render border-box-sizing rendered_html">
 <h3>Wrote python blurb to create bash script</h3>
-<p>Reads in the XML, looks for all the runs, then extracts read length and sdev when appropriate.<br />
+<p>Reads in the XML, looks for all the runs, then extracts read length and sdev when appropriate. Novoalign can use read length and sdev. Mapped all the read files seperately, as <a href="http://www.novocraft.com/wiki/tiki-view_forum_thread.php?topics_offset=1&amp;forumId=1&amp;comments_parentId=535">Novoalign suggests</a> doing that and then merging the SAM files.<br />
 As it will take 2-3 days, running mapping from within python notebook seemed like a bad idea, hence the scripts.</p>
 </div>
 <div class="cell border-box-sizing code_cell vbox">
@@ -118,8 +91,8 @@ As it will take 2-3 days, running mapping from within python notebook seemed lik
 </div>
 <div class="text_cell_render border-box-sizing rendered_html">
 <h3>Screwed up and missed SRR646261-SRR646262, should be SRR646261,SRR646262.</h3>
-<p>For reasons that aren't clear, certain runs are denoted as a range (SRR646261-SRR646262 in this example, but there are others), while most are a list.<br />
-Had to run from that point on.  Now need to make a list of samples and their associated SAM/BAM files</p>
+<p>For reasons that aren't clear, certain runs are denoted in the XML file as a range (SRR646261-SRR646262 in this example, but there are others), while most are a list.<br />
+Had to run from that point on.  Now need to make a list of samples and their associated SAM/BAM files.</p>
 </div>
 <div class="cell border-box-sizing code_cell vbox">
 <div class="input hbox">
@@ -171,7 +144,9 @@ Had to run from that point on.  Now need to make a list of samples and their ass
 </div>
 </div>
 <div class="text_cell_render border-box-sizing rendered_html">
-<p>Damnit, apparently that link command doesn't work, need to write another cleanup script.</p>
+<p>Damnit, apparently that link command doesn't work, need to write another cleanup script.<br />
+I've also noticed that the forum suggested sorting, then merging. This merges, then sorts. Hrm.<br />
+The new BAM files are named from the XML, by strain name.</p>
 </div>
 <div class="cell border-box-sizing code_cell vbox">
 <div class="input hbox">
@@ -301,4 +276,7 @@ Had to run from that point on.  Now need to make a list of samples and their ass
 
 </div>
 </div>
+</div>
+<div class="text_cell_render border-box-sizing rendered_html">
+<p>OK! Now I have 26 vcf files, I need a way to visualize what is going on. Tomorrow I will post my visualization of the data in iPython notebook and matplotlib.</p>
 </div>
